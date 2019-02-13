@@ -1,0 +1,133 @@
+---
+title: "statebins plots"
+author: "Liu, Jiayi"
+output:
+  word_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+[data source: 2017 Median Household Income by State (percent change)]https://geofred.stlouisfed.org/map/?th=bugn&cc=2&rc=false&im=user&sb&lng=-90.00&lat=39.98&zm=4&sl&sv&am=Average&at=Not%20Seasonally%20Adjusted,%20Annual,%20Current%20Dollars&sti=165&fq=Annual&rt=state&un=pch&dt=2017-01-01&ibs=0,20000000
+[data source: 2017 Per Capita Personal Income by State (dollars)]https://geofred.stlouisfed.org/map/?th=ylorbr&cc=8&rc=false&im=fractile&sb&lng=-105.56&lat=43.80&zm=4&sl&sv&am=Average&at=Not%20Seasonally%20Adjusted,%20Annual,%20Dollars&sti=882&fq=Annual&rt=state&un=lin&dt=2017-01-01
+
+# load and library packages
+```{r message= FALSE}
+library(pacman)
+p_load("tidyverse", "broom", "coefplot", "cowplot",
+                 "gapminder", "GGally", "ggrepel", "ggridges", "gridExtra",
+                 "here", "interplot", "margins", "maps", "mapproj",
+                 "mapdata", "MASS", "quantreg", "rlang", "scales",
+                 "survey", "srvyr", "viridis", "viridisLite", "devtools", "socviz", "statebins")
+# Enter one or more numbers separated by spaces, or an empty line to cancel
+# 1: 
+#devtools::install_github("kjhealy/socviz")
+```
+
+
+
+#read data
+```{r}
+library(readxl)
+Household_Income <- read_excel("GeoFRED_Median_Household_Income_by_State_Percent_Change.xls", 
+                               col_types = c("text", "text", "text", 
+        "numeric"))
+
+colnames(Household_Income) <-c("ID", "state", "code", "value")
+str(Household_Income)
+Personal_Income <- read_excel("GeoFRED_Per_Capita_Personal_Income_by_State_Dollars.xls", 
+    col_types = c("text", "text", "text", 
+        "numeric"))
+colnames(Personal_Income) <-c("ID", "state", "code", "value")
+str(Personal_Income)
+
+library(maps)
+us_states <- map_data("state")
+head(us_states)
+
+```
+
+```{r}
+library(statebins)
+```
+
+
+# 2017 Median Household Income by State (percent change)
+
+```{r}
+statebins_continuous(state_data = Household_Income, state_col = "state",
+                     text_color = "white", value_col = "value",
+                     brewer_pal="Reds", font_size = 3,
+                     legend_title="2017 Median Household Income by State (percent change)")
+```
+```{r}
+#View(Household_Income)
+statebins(state_data = Household_Income,          
+          state_col = "state", value_col = "value",
+          text_color = "white", breaks = 4,
+          labels = c("-7-0", "0-6", "6-12", "12-18"),
+          brewer_pal="Reds", font_size = 3, legend_title="2017 Median Household Income by State (percent change)")
+```
+
+# Other practice
+
+```{r}
+Household_Income$region <- tolower(Household_Income$state)
+us_states_elec <- left_join(us_states, Household_Income)
+```
+```{r}
+p0 <- ggplot(data = us_states_elec,
+             mapping = aes(x = long, y = lat, group = group, fill = value))
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
+    coord_map(projection = "albers", lat0 = 39, lat1 = 45) 
+p1 + labs(title = "2017 Median Household Income by State ") + theme_map() + labs(fill = "Percent")
+
+
+```
+```{r}
+p0 <- ggplot(data = subset(us_states_elec,
+                           region %nin% "district of columbia"),
+             aes(x = long, y = lat, group = group, fill = value))
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
+    coord_map(projection = "albers", lat0 = 39, lat1 = 45) 
+p2 <- p1 + scale_fill_gradient2(low = "red",
+                                mid = scales::muted("purple"),
+                                high = "blue") +
+    labs(title = "2017 Median Household Income by State ") 
+p2 + theme_map() + labs(fill = "Percent")
+```
+
+# 2017 Per Capita Personal Income by State (dollars)
+```{r}
+statebins_continuous(state_data = Personal_Income, state_col = "state",
+                     text_color = "black", value_col = "value",
+                     brewer_pal="Blues", font_size = 3,
+                     legend_title="2017 Per Capita Personal Income by State (dollars)")
+```
+```{r}
+#View(Personal_Income)
+statebins(state_data = Personal_Income,          
+          state_col = "state", value_col = "value",
+          text_color = "black", breaks = 4,
+          labels = c("36000-47000", "47000-58000", "58000-69000", "69000-80000"),
+          brewer_pal="Blues", font_size = 3, legend_title="2017 Per Capita Personal Income by State (dollars)")
+```
+
+# Other practice
+
+```{r}
+Personal_Income$region <- tolower(Personal_Income$state)
+us_states_elec <- left_join(us_states, Personal_Income)
+```
+```{r}
+p0 <- ggplot(data = us_states_elec,
+             mapping = aes(x = long, y = lat, group = group, fill = value))
+p1 <- p0 + geom_polygon(color = "gray90", size = 0.1) +
+    coord_map(projection = "albers", lat0 = 39, lat1 = 45) 
+p1 + labs(title = "2017 Per Capita Personal Income by State (dollars)") + theme_map() + labs(fill = "Dollars")
+
+
+```
+
+
